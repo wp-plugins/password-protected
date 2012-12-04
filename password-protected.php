@@ -4,7 +4,7 @@
 Plugin Name: Password Protected
 Plugin URI: http://www.benhuson.co.uk/
 Description: A very simple way to quickly password protect your WordPress site with a single password. Integrates seamlessly into your WordPress privacy settings.
-Version: 1.3
+Version: 1.4
 Author: Ben Huson
 Author URI: http://www.benhuson.co.uk/
 License: GPLv2
@@ -40,7 +40,7 @@ $Password_Protected = new Password_Protected();
 
 class Password_Protected {
 	
-	var $version = '1.3';
+	var $version = '1.4';
 	var $admin   = null;
 	var $errors  = null;
 	
@@ -55,6 +55,7 @@ class Password_Protected {
 		add_action( 'wp', array( $this, 'disable_feeds' ) );
 		add_action( 'template_redirect', array( $this, 'maybe_show_login' ), 1 );
 		add_filter( 'pre_option_password_protected_status', array( $this, 'allow_feeds' ) );
+		add_filter( 'pre_option_password_protected_status', array( $this, 'allow_administrators' ) );
 		if ( is_admin() ) {
 			include_once( dirname( __FILE__ ) . '/admin/admin.php' );
 			$this->admin = new Password_Protected_Admin();
@@ -72,8 +73,11 @@ class Password_Protected {
 	 * Is Active?
 	 */
 	function is_active() {
-		if ( (bool) get_option( 'password_protected_status' ) )
+		if ( (bool) get_option( 'password_protected_status' ) ) {
+			if ( ! defined( 'DONOTCACHEPAGE' ) )
+				define( 'DONOTCACHEPAGE', true );
 			return true;
+		}
 		return false;
 	}
 	
@@ -105,6 +109,15 @@ class Password_Protected {
 	 */
 	function allow_feeds( $bool ) {
 		if ( is_feed() && (bool) get_option( 'password_protected_feeds' ) )
+			return 0;
+		return $bool;
+	}
+	
+	/**
+	 * Allow Administrators
+	 */
+	function allow_administrators( $bool ) {
+		if ( ! is_admin() && current_user_can( 'manage_options' ) && (bool) get_option( 'password_protected_administrators' ) )
 			return 0;
 		return $bool;
 	}
