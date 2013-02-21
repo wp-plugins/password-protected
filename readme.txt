@@ -2,24 +2,27 @@
 Contributors: husobj
 Donate link: http://www.benhuson.co.uk/donate/
 Tags: password, protect, password protect, login
-Requires at least: 3.0
-Tested up to: 3.5
-Stable tag: 1.4
+Requires at least: 3.1
+Tested up to: 3.5.1
+Stable tag: 1.5
 License: GPLv2 or later
 
-A very simple way to quickly password protect your WordPress site with a single password. Integrates seamlessly into your WordPress settings.
+A very simple way to quickly password protect your WordPress site with a single password.
 
 == Description ==
 
-A very simple way to quickly password protect your WordPress site with a single password. Integrates seamlessly into your WordPress settings.
+A very simple way to quickly password protect your WordPress site with a single password.
+
+This plugin only protects your WordPress content. It **does not protect and images or uploaded files** so if you enter and exact URL to in image file it will still be accessible.
 
 Features include:
 
 * Password protect your WordPress site with a single password.
 * Option to allow access to feeds.
 * Option to allow administrators access without entering password.
-* Integrates seamlessly into your WordPress reading settings (or privacy settings prior to WordPress 3.5).
 * Works with Mark Jaquith's [Login Logo](http://wordpress.org/extend/plugins/login-logo/) plugin.
+
+> Please note, this plugin does not currently work with WP Engine hosting due to their page caching implementation.
             
 == Installation ==
 
@@ -27,7 +30,7 @@ To install and configure this plugin...
 
 1. Upload or install the plugin through your WordPress admin.
 2. Activate the plugin via the 'Plugins' admin menu.
-3. Configuration the password in your WordPress reading settings (or privacy settings prior to WordPress 3.5).
+3. Configure the password options in the Password Protected settings.
 
 = Upgrading =
 
@@ -61,10 +64,15 @@ If you can, please [fork the code](https://github.com/benhuson/password-protecte
 == Screenshots ==
 
 1. Login page perfectly mimicks the WordPress login.
-2. Integrates seamlessly into your WordPress reading settings in WordPress 3.5+.
-3. Integrates into your WordPress privacy settings in earlier versions of WordPress.
+2. Password Protected settings page.
 
 == Changelog ==
+
+= 1.5 =
+* Requires WordPress 3.1+
+* Settings now have their own page.
+* Fixed an open redirect vulnerability. Props Chris Campbell.
+* Added note about WP Engine compatibility to readme.txt
 
 = 1.4 =
 * Add option to allow administrators to use the site without logging in.
@@ -99,6 +107,9 @@ If you can, please [fork the code](https://github.com/benhuson/password-protecte
 * First Release. If you spot any bugs or issues please [log them here](https://github.com/benhuson/password-protected/issues).
 
 == Upgrade Notice ==
+
+= 1.5 =
+Fixes an open redirect vulnerability. Settings now have own page.
 
 = 1.4 =
 Administrators can use the site without logging in. WordPress 3.5 compatible.

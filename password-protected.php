@@ -4,7 +4,7 @@
 Plugin Name: Password Protected
 Plugin URI: http://wordpress.org/extend/plugins/password-protected/
 Description: A very simple way to quickly password protect your WordPress site with a single password. Integrates seamlessly into your WordPress privacy settings.
-Version: 1.4
+Version: 1.5
 Author: Ben Huson
 Author URI: http://www.benhuson.co.uk/
 License: GPLv2
@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /**
  * @todo Use wp_hash_password() ?
+ * @todo Remember me
  */
 
 define( 'PASSWORD_PROTECTED_SUBDIR', '/' . str_replace( basename( __FILE__ ), '', plugin_basename( __FILE__ ) ) );
@@ -40,7 +41,7 @@ $Password_Protected = new Password_Protected();
 
 class Password_Protected {
 	
-	var $version = '1.4';
+	var $version = '1.5';
 	var $admin   = null;
 	var $errors  = null;
 	
@@ -121,7 +122,14 @@ class Password_Protected {
 			return 0;
 		return $bool;
 	}
-	
+
+	/**
+	 * Encrypt Password
+	 */
+	function encrypt_password( $password ) {
+		return md5( $password );
+	}
+
 	/**
 	 * Maybe Process Login
 	 */
@@ -130,10 +138,10 @@ class Password_Protected {
 			$password_protected_pwd = $_REQUEST['password_protected_pwd'];
 			$pwd = get_option( 'password_protected_password' );
 			// If correct password...
-			if ( ( md5( $password_protected_pwd ) == $pwd && $pwd != '' ) || apply_filters( 'password_protected_process_login', false, $password_protected_pwd ) ) {
+			if ( ( $this->encrypt_password( $password_protected_pwd ) == $pwd && $pwd != '' ) || apply_filters( 'password_protected_process_login', false, $password_protected_pwd ) ) {
 				$this->set_auth_cookie();
 				if ( ! empty( $_REQUEST['redirect_to'] ) ) {
-					wp_redirect( $_REQUEST['redirect_to'] );
+					$this->safe_redirect( $_REQUEST['redirect_to'] );
 					exit;
 				}
 			} else {
@@ -320,12 +328,25 @@ class Password_Protected {
 		if ( empty( $old_version ) || version_compare( '1.1', $old_version ) ) {
 			$pwd = get_option( 'password_protected_password' );
 			if ( ! empty( $pwd ) ) {
-				$new_pwd = md5( $pwd );
+				$new_pwd = $this->encrypt_password( $pwd );
 				update_option( 'password_protected_password', $new_pwd );
 			} 
 		}
 		
 		update_option( 'password_protected_version', $this->version );
+	}
+
+	/**
+	 * Safe Redirect
+	 *
+	 * Ensure the redirect is to the same site or pluggable list of allowed domains.
+	 * If invalid will redirect to ...
+	 * Based on the WordPress wp_safe_redirect() function.
+	 */
+	function safe_redirect( $location, $status = 302 ) {
+		$location = wp_sanitize_redirect( $location );
+		$location = wp_validate_redirect( $location, home_url() );
+		wp_redirect( $location, $status );
 	}
 
 }

@@ -2,34 +2,61 @@
 
 class Password_Protected_Admin {
 	
-	var $options_group = 'reading';
+	var $settings_page_id;
+	var $options_group = 'password-protected';
 	
 	/**
 	 * Constructor
 	 */
 	function Password_Protected_Admin() {
 		global $wp_version;
-		add_action( 'admin_init', array( $this, 'privacy_settings' ) );
-		add_action( 'load-options-reading.php', array( $this, 'add_reading_help_tabs' ), 20 );
+		add_action( 'admin_init', array( $this, 'password_protected_settings' ), 5 );
+		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
+		add_action( 'password_protected_help_tabs', array( $this, 'help_tabs' ), 5 );
 		add_action( 'admin_notices', array( $this, 'password_protected_admin_notices' ) );
 		add_filter( 'pre_update_option_password_protected_password', array( $this, 'pre_update_option_password_protected_password' ), 10, 2 );
 		add_filter( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
-		
-		// Pre WordPress 3.5 settings group compatibility
-		if ( version_compare( $wp_version, '3.5.dev', '<' ) ) {
-			$this->options_group = 'privacy';
-		}
 	}
-	
+
 	/**
-	 * Add Reading Help Tabs
+	 * Admin Menu
 	 */
-	function add_reading_help_tabs() {
+	function admin_menu() {
+		$this->settings_page_id = add_options_page( __( 'Password Protected', 'password-protected' ), __( 'Password Protected', 'password-protected' ), 'manage_options', 'password-protected', array( $this, 'settings_page' ) );
+		add_action( 'load-' . $this->settings_page_id, array( $this, 'add_help_tabs' ), 20 );
+	}
+
+	/**
+	 * Settings Page
+	 */
+	function settings_page() {
+		echo '<div class="wrap">
+			<div id="icon-options-general" class="icon32"><br /></div>
+			<h2>' . __( 'Password Protected Settings', 'password-protected' ) . '</h2>
+			<form method="post" action="options.php">';
+		settings_fields( 'password-protected' );
+		do_settings_sections( 'password-protected' );
+		echo '<p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="' . __( 'Save Changes' ) . '"></p>
+			</form>
+			</div>';
+	}
+
+	/**
+	 * Add Help Tabs
+	 */
+	function add_help_tabs() {
 		global $wp_version;
 		if ( version_compare( $wp_version, '3.3', '<' ) )
 			return;
-		get_current_screen()->add_help_tab( array(
-			'id'      => 'PASSWORD_PROTECTED_READING',
+		do_action( 'password_protected_help_tabs', get_current_screen() );
+	}
+
+	/**
+	 * Help Tabs
+	 */
+	function help_tabs( $current_screen ) {
+		$current_screen->add_help_tab( array(
+			'id'      => 'PASSWORD_PROTECTED_SETTINGS',
 			'title'   => __( 'Password Protected', 'password-protected' ),
 			'content' => __( '<p><strong>Enabled Checkbox</strong><br />Turn on/off password protection.</p>', 'password-protected' )
 				. __( '<p><strong>Allow RSS Feeds Checkbox</strong><br />RSS Feeds will be able to accessed even when the site is password proteced.</p>', 'password-protected' )
@@ -42,8 +69,8 @@ class Password_Protected_Admin {
 	 * Admin Enqueue Scripts
 	 */
 	function admin_enqueue_scripts() {
-		global $current_screen;
-		if ( 'options-' . $this->options_group == $current_screen->id ) {
+		$current_screen = get_current_screen();
+		if ( 'settings_page_' . $this->options_group == $current_screen->id ) {
 			wp_enqueue_script( 'password_protected_settings', PASSWORD_PROTECTED_URL . '/admin/js/settings.js', array( 'jquery' ) );
 		}
 	}
@@ -51,10 +78,10 @@ class Password_Protected_Admin {
 	/**
 	 * Settings API
 	 */
-	function privacy_settings() {
+	function password_protected_settings() {
 		add_settings_section(
 			'password_protected',
-			__( 'Password Protected Settings', 'password-protected' ),
+			'',
 			array( $this, 'password_protected_settings_section' ),
 			$this->options_group
 		);
@@ -105,7 +132,8 @@ class Password_Protected_Admin {
 	 * Password Protected Section
 	 */
 	function password_protected_settings_section() {
-		echo '<p>' . __( 'Password protect your web site. Users will be asked to enter a password to view the site.', 'password-protected' ) . '</p>';
+		echo '<p>' . __( 'Password protect your web site. Users will be asked to enter a password to view the site.', 'password-protected' ) . '<br />
+			' . __( 'For more information about Password Protected settings, view the "Help" tab at the top of this page.', 'password-protected' ) . '</p>';
 	}
 	
 	/**
@@ -137,8 +165,9 @@ class Password_Protected_Admin {
 	 * @return string Filtered new value.
 	 */
 	function pre_update_option_password_protected_password( $newvalue, $oldvalue ) {
+		global $Password_Protected;
 		if ( $newvalue != $oldvalue ) {
-			$newvalue = md5( $newvalue );
+			$newvalue = $Password_Protected->encrypt_password( $newvalue );
 		}
 		return $newvalue;
 	}
@@ -148,7 +177,7 @@ class Password_Protected_Admin {
 	 * Warns the user if they have enabled password protection but not entered a password
 	 */
 	function password_protected_admin_notices(){
-		global $current_screen;
+		$current_screen = get_current_screen();
 		if ( $current_screen->id == 'options-' . $this->options_group ) {
 			$status = get_option( 'password_protected_status' );
 			$pwd = get_option( 'password_protected_password' );
