@@ -1,10 +1,10 @@
 <?php
 
 class Password_Protected_Admin {
-	
+
 	var $settings_page_id;
 	var $options_group = 'password-protected';
-	
+
 	/**
 	 * Constructor
 	 */
@@ -17,7 +17,6 @@ class Password_Protected_Admin {
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 4 );
 		add_filter( 'plugin_action_links_password-protected/password-protected.php', array( $this, 'plugin_action_links' ) );
 		add_filter( 'pre_update_option_password_protected_password', array( $this, 'pre_update_option_password_protected_password' ), 10, 2 );
-		add_filter( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
 	}
 
 	/**
@@ -55,28 +54,19 @@ class Password_Protected_Admin {
 
 	/**
 	 * Help Tabs
+	 *
+	 * @param   object  $current_screen  Screen object.
 	 */
 	function help_tabs( $current_screen ) {
 		$current_screen->add_help_tab( array(
 			'id'      => 'PASSWORD_PROTECTED_SETTINGS',
 			'title'   => __( 'Password Protected', 'password-protected' ),
-			'content' => __( '<p><strong>Enabled Checkbox</strong><br />Turn on/off password protection.</p>', 'password-protected' )
-				. __( '<p><strong>Allow RSS Feeds Checkbox</strong><br />RSS Feeds will be able to accessed even when the site is password proteced.</p>', 'password-protected' )
-				. __( '<p><strong>Allow Administrators Checkbox</strong><br />Administrators will not need to enter a password to view the site (providing they are logged in of course). You will also need to enable this option if you want administrators to be able to preview the site in the Theme Customizer.</p>', 'password-protected' )
+			'content' => __( '<p><strong>Password Protected Status</strong><br />Turn on/off password protection.</p>', 'password-protected' )
+				. __( '<p><strong>Protected Permissions</strong><br />Allow access for logged in users and administrators without needing to enter a password. You will need to enable this option if you want administrators to be able to preview the site in the Theme Customizer. Also allow RSS Feeds to be accessed when the site is password protected.</p>', 'password-protected' )
 				. __( '<p><strong>Password Fields</strong><br />To set a new password, enter it into both fields. You cannot set an `empty` password. To disable password protection uncheck the Enabled checkbox.</p>', 'password-protected' )
 		) );
 	}
-	
-	/**
-	 * Admin Enqueue Scripts
-	 */
-	function admin_enqueue_scripts() {
-		$current_screen = get_current_screen();
-		if ( 'settings_page_' . $this->options_group == $current_screen->id ) {
-			wp_enqueue_script( 'password_protected_settings', PASSWORD_PROTECTED_URL . '/admin/js/settings.js', array( 'jquery' ) );
-		}
-	}
-	
+
 	/**
 	 * Settings API
 	 */
@@ -95,6 +85,13 @@ class Password_Protected_Admin {
 			'password_protected'
 		);
 		add_settings_field(
+			'password_protected_permissions',
+			__( 'Protected Permissions', 'password-protected' ),
+			array( $this, 'password_protected_permissions_field' ),
+			$this->options_group,
+			'password_protected'
+		);
+		add_settings_field(
 			'password_protected_password',
 			__( 'New Password', 'password-protected' ),
 			array( $this, 'password_protected_password_field' ),
@@ -104,11 +101,15 @@ class Password_Protected_Admin {
  		register_setting( $this->options_group, 'password_protected_status', 'intval' );
  		register_setting( $this->options_group, 'password_protected_feeds', 'intval' );
  		register_setting( $this->options_group, 'password_protected_administrators', 'intval' );
+ 		register_setting( $this->options_group, 'password_protected_users', 'intval' );
 		register_setting( $this->options_group, 'password_protected_password', array( $this, 'sanitize_password_protected_password' ) );
  	}
-	
+
 	/**
 	 * Sanitize Password Field Input
+	 *
+	 * @param   string  $val  Password.
+	 * @return  string        Sanitized password.
 	 */
 	function sanitize_password_protected_password( $val ) {
 		$old_val = get_option( 'password_protected_password' );
@@ -129,7 +130,7 @@ class Password_Protected_Admin {
 		}
 		return $val;
 	}
-	
+
 	/**
 	 * Password Protected Section
 	 */
@@ -137,16 +138,23 @@ class Password_Protected_Admin {
 		echo '<p>' . __( 'Password protect your web site. Users will be asked to enter a password to view the site.', 'password-protected' ) . '<br />
 			' . __( 'For more information about Password Protected settings, view the "Help" tab at the top of this page.', 'password-protected' ) . '</p>';
 	}
-	
+
 	/**
 	 * Password Protection Status Field
 	 */
 	function password_protected_status_field() {
-		echo '<input name="password_protected_status" id="password_protected_status" type="checkbox" value="1" ' . checked( 1, get_option( 'password_protected_status' ), false ) . ' /> ' . __( 'Enabled', 'password-protected' );
-		echo '<input name="password_protected_feeds" id="password_protected_feeds" type="checkbox" value="1" ' . checked( 1, get_option( 'password_protected_feeds' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow RSS Feeds', 'password-protected' );
-		echo '<input name="password_protected_administrators" id="password_protected_administrators" type="checkbox" value="1" ' . checked( 1, get_option( 'password_protected_administrators' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow Administrators', 'password-protected' );
+		echo '<label><input name="password_protected_status" id="password_protected_status" type="checkbox" value="1" ' . checked( 1, get_option( 'password_protected_status' ), false ) . ' /> ' . __( 'Enabled', 'password-protected' ) . '</label>';
 	}
-	
+
+	/**
+	 * Password Protection Permissions Field
+	 */
+	function password_protected_permissions_field() {
+		echo '<label><input name="password_protected_administrators" id="password_protected_administrators" type="checkbox" value="1" ' . checked( 1, get_option( 'password_protected_administrators' ), false ) . ' /> ' . __( 'Allow Administrators', 'password-protected' ) . '</label>';
+		echo '<label><input name="password_protected_users" id="password_protected_users" type="checkbox" value="1" ' . checked( 1, get_option( 'password_protected_users' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow Logged In Users', 'password-protected' ) . '</label>';
+		echo '<label><input name="password_protected_feeds" id="password_protected_feeds" type="checkbox" value="1" ' . checked( 1, get_option( 'password_protected_feeds' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow RSS Feeds', 'password-protected' ) . '</label>';
+	}
+
 	/**
 	 * Password Field
 	 */
@@ -154,7 +162,7 @@ class Password_Protected_Admin {
 		echo '<input type="password" name="password_protected_password[new]" id="password_protected_password_new" size="16" value="" autocomplete="off"> <span class="description">' . __( 'If you would like to change the password type a new one. Otherwise leave this blank.', 'password-protected' ) . '</span><br>
 			<input type="password" name="password_protected_password[confirm]" id="password_protected_password_confirm" size="16" value="" autocomplete="off"> <span class="description">' . __( 'Type your new password again.', 'password-protected' ) . '</span>';
 	}
-	
+
 	/**
 	 * Pre-update 'password_protected_password' Option
 	 *
@@ -162,9 +170,9 @@ class Password_Protected_Admin {
 	 * Doing it in this way allows developers to intercept with an earlier filter if they
 	 * need to do something with the plaintext password.
 	 *
-	 * @param string $newvalue New Value.
-	 * @param string $oldvalue Old Value.
-	 * @return string Filtered new value.
+	 * @param   string  $newvalue  New Value.
+	 * @param   string  $oldvalue  Old Value.
+	 * @return  string             Filtered new value.
 	 */
 	function pre_update_option_password_protected_password( $newvalue, $oldvalue ) {
 		global $Password_Protected;
@@ -177,7 +185,7 @@ class Password_Protected_Admin {
 	/**
 	 * Plugin Row Meta
 	 *
-	 * Adds GitHub link below the plugin description on the plugins page.
+	 * Adds GitHub and translate links below the plugin description on the plugins page.
 	 *
 	 * @param   array   $plugin_meta  Plugin meta display array.
 	 * @param   string  $plugin_file  Plugin reference.
@@ -188,6 +196,7 @@ class Password_Protected_Admin {
 	function plugin_row_meta( $plugin_meta, $plugin_file, $plugin_data, $status ) {
 		if ( 'password-protected/password-protected.php' == $plugin_file ) {
 			$plugin_meta[] = sprintf( '<a href="%s">%s</a>', __( 'http://github.com/benhuson/password-protected', 'password-protected' ), __( 'GitHub', 'password-protected' ) );
+			$plugin_meta[] = sprintf( '<a href="%s">%s</a>', __( 'https://www.transifex.com/projects/p/password-protected/resource/password-protected/', 'password-protected' ), __( 'Translate', 'password-protected' ) );
 		}
 		return $plugin_meta;
 	}
@@ -217,12 +226,16 @@ class Password_Protected_Admin {
 			if ( (bool) $status && empty( $pwd ) ) {
 				echo '<div class="error"><p>' . __( 'You have enabled password protection but not yet set a password. Please set one below.', 'password-protected' ) . '</p></div>';
 			}
-			if ( current_user_can( 'manage_options' ) && (bool) get_option( 'password_protected_administrators' ) ) {
-				echo '<div class="error"><p>' . __( 'You have enabled password protection and allowed administrators - other users will still need to login to view the site.', 'password-protected' ) . '</p></div>';
+			if ( current_user_can( 'manage_options' ) && ( (bool) get_option( 'password_protected_administrators' ) || (bool) get_option( 'password_protected_users' ) ) ) {
+				if ( (bool) get_option( 'password_protected_administrators' ) && (bool) get_option( 'password_protected_users' ) ) {
+					echo '<div class="error"><p>' . __( 'You have enabled password protection and allowed administrators and logged in users - other users will still need to login to view the site.', 'password-protected' ) . '</p></div>';
+				} elseif ( (bool) get_option( 'password_protected_administrators' ) ) {
+					echo '<div class="error"><p>' . __( 'You have enabled password protection and allowed administrators - other users will still need to login to view the site.', 'password-protected' ) . '</p></div>';
+				} elseif ( (bool) get_option( 'password_protected_users' ) ) {
+					echo '<div class="error"><p>' . __( 'You have enabled password protection and allowed logged in users - other users will still need to login to view the site.', 'password-protected' ) . '</p></div>';
+				}
 			}
 		}
 	}
 
 }
-
-?>
